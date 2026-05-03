@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use keri_core::{
+    event::sections::threshold::SignatureThreshold,
     event_message::signature::Signature,
     oobi::LocationScheme,
     prefix::{BasicPrefix, IdentifierPrefix, SelfSigningPrefix},
@@ -70,7 +71,25 @@ impl Controller {
     ) -> Result<String, MechanicsError> {
         self.setup_witnesses(&witnesses).await?;
         self.known_events
-            .incept(public_keys, next_pub_keys, witnesses, witness_threshold)
+            .incept(public_keys, None, next_pub_keys, None, witnesses, witness_threshold)
+    }
+
+    pub async fn incept_with_thresholds(
+        &self,
+        public_keys: Vec<BasicPrefix>,
+        signature_threshold: u64,
+        next_pub_keys: Vec<BasicPrefix>,
+        next_keys_threshold: Option<u64>,
+        witnesses: Vec<LocationScheme>,
+        witness_threshold: u64,
+    ) -> Result<String, MechanicsError> {
+        self.setup_witnesses(&witnesses).await?;
+        let current_sig_threshold = SignatureThreshold::Simple(signature_threshold);
+        let next_sig_threshold = next_keys_threshold
+            .map(|t| SignatureThreshold::Simple(t))
+            .unwrap_or(current_sig_threshold.clone());
+        self.known_events
+            .incept(public_keys, Some(current_sig_threshold), next_pub_keys, Some(next_sig_threshold), witnesses, witness_threshold)
     }
 
     pub fn finalize_incept(
@@ -78,7 +97,16 @@ impl Controller {
         event: &[u8],
         sig: &SelfSigningPrefix,
     ) -> Result<Identifier, ControllerError> {
-        let initialized_id = self.known_events.finalize_inception(event, sig).unwrap();
+        self.finalize_incept_with_index(event, sig, 0)
+    }
+
+    pub fn finalize_incept_with_index(
+        &self,
+        event: &[u8],
+        sig: &SelfSigningPrefix,
+        key_index: usize,
+    ) -> Result<Identifier, ControllerError> {
+        let initialized_id = self.known_events.finalize_inception(event, sig, key_index).unwrap();
         Ok(Identifier::new(
             initialized_id,
             None,

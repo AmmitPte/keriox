@@ -60,7 +60,7 @@ impl<
         public_keys: Vec<BasicPrefix>,
         next_pub_keys: Vec<BasicPrefix>,
     ) -> Result<String, ()> {
-        event_generator::incept(public_keys, next_pub_keys, vec![], 0, None)
+        event_generator::incept(public_keys, None, next_pub_keys, None, vec![], 0, None)
             .map_err(|_e| ())
     }
 

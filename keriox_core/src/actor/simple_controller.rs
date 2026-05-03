@@ -126,7 +126,9 @@ impl<K: KeyManager> SimpleController<K, RedbDatabase> {
         let km = self.key_manager.lock().map_err(|_| Error::MutexPoisoned)?;
         let icp = event_generator::incept(
             vec![BasicPrefix::Ed25519(km.public_key())],
+            None,
             vec![BasicPrefix::Ed25519(km.next_public_key())],
+            None,
             initial_witness.unwrap_or_default(),
             witness_threshold.unwrap_or(0),
             delegator,

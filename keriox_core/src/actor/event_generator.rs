@@ -23,21 +23,29 @@ use crate::{
 // todo add setting signing threshold
 pub fn incept(
     public_keys: Vec<BasicPrefix>,
+    signature_threshold: Option<SignatureThreshold>,
     next_pub_keys: Vec<BasicPrefix>,
+    next_signature_threshold: Option<SignatureThreshold>,
     witnesses: Vec<BasicPrefix>,
     witness_threshold: u64,
     delegator_id: Option<&IdentifierPrefix>,
 ) -> Result<String, Error> {
-    let event_builder = match delegator_id {
+    let mut event_builder = match delegator_id {
         Some(delegator) => EventMsgBuilder::new(EventTypeTag::Dip).with_delegator(delegator),
         None => EventMsgBuilder::new(EventTypeTag::Icp),
     };
-    let serialized_icp = event_builder
+    event_builder = event_builder
         .with_keys(public_keys)
         .with_next_keys(next_pub_keys)
         .with_witness_list(witnesses.as_slice())
-        .with_witness_threshold(&SignatureThreshold::Simple(witness_threshold))
-        .build()
+        .with_witness_threshold(&SignatureThreshold::Simple(witness_threshold));
+    if let Some(signature_threshold) = signature_threshold {
+        event_builder = event_builder.with_threshold(&signature_threshold);
+    }
+    if let Some(next_signature_threshold) = next_signature_threshold {
+        event_builder = event_builder.with_next_threshold(&next_signature_threshold);
+    }
+    let serialized_icp = event_builder.build()
         .map_err(|e| Error::EventGenerationError(e.to_string()))?
         .encode()
         .map_err(|e| Error::EventGenerationError(e.to_string()))?;

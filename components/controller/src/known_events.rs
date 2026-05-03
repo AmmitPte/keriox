@@ -5,6 +5,7 @@ use keri_core::actor::parse_event_stream;
 use keri_core::database::redb::{RedbDatabase, RedbError};
 use keri_core::error::Error;
 use keri_core::event_message::signed_event_message::SignedNontransferableReceipt;
+use keri_core::event::sections::threshold::SignatureThreshold;
 use keri_core::oobi::LocationScheme;
 use keri_core::prefix::{BasicPrefix, IdentifierPrefix, IndexedSignature, SelfSigningPrefix};
 
@@ -266,7 +267,9 @@ impl KnownEvents {
     pub fn incept(
         &self,
         public_keys: Vec<BasicPrefix>,
+        signature_threshold: Option<SignatureThreshold>,
         next_pub_keys: Vec<BasicPrefix>,
+        next_signature_threshold: Option<SignatureThreshold>,
         witnesses: Vec<LocationScheme>,
         witness_threshold: u64,
     ) -> Result<String, MechanicsError> {
@@ -282,7 +285,9 @@ impl KnownEvents {
             .collect::<Result<Vec<_>, _>>()?;
         event_generator::incept(
             public_keys,
+            signature_threshold,
             next_pub_keys,
+            next_signature_threshold,
             witnesses,
             witness_threshold,
             None,
@@ -292,20 +297,20 @@ impl KnownEvents {
 
     /// Verifies event signature and adds it to kel.
     /// Returns new established identifier prefix.
-    /// Meant to be used for identifiers with one key pair.
     /// Must call `IdentifierController::notify_witnesses` after calling this function.
+    /// Does *not* handle exchange messages for group identifiers.
     pub fn finalize_inception(
         &self,
         event: &[u8],
         sig: &SelfSigningPrefix,
+        key_index: usize,
     ) -> Result<IdentifierPrefix, MechanicsError> {
         let parsed_event =
             parse_event_type(event).map_err(|_e| MechanicsError::EventFormatError)?;
         match parsed_event {
             EventType::KeyEvent(ke) => {
                 if let EventData::Icp(_) = &ke.data.get_event_data() {
-                    // TODO we assume here that provided signature matches 0th public key.
-                    self.finalize_key_event(&ke, sig, 0)?;
+                    self.finalize_key_event(&ke, sig, key_index)?;
                     Ok(ke.data.get_prefix())
                 } else {
                     Err(MechanicsError::InceptionError(
