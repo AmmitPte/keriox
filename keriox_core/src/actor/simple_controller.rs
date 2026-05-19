@@ -260,9 +260,13 @@ impl<K: KeyManager> SimpleController<K, RedbDatabase> {
             .get_state(&self.prefix)
             .ok_or_else(|| Error::SemanticError("There is no state".into()))?;
 
+        let SignatureThreshold::Simple(current_threshold) = state.current.next_keys_data.threshold  else {
+            return Err(Error::SemanticError("Current threshold is not a simple threshold".into()));
+        };
         Ok(event_generator::rotate(
             state,
             vec![BasicPrefix::Ed25519(km.public_key())],
+            current_threshold,
             vec![BasicPrefix::Ed25519(km.next_public_key())],
             1,
             witness_to_add.unwrap_or_default().to_vec(),

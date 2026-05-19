@@ -110,6 +110,7 @@ pub fn incept_with_next_hashes(
 pub fn rotate(
     state: IdentifierState,
     current_keys: Vec<BasicPrefix>,
+    current_threshold: u64,
     new_next_keys: Vec<BasicPrefix>,
     new_next_threshold: u64,
     witness_to_add: Vec<BasicPrefix>,
@@ -119,6 +120,7 @@ pub fn rotate(
     let rot = make_rotation(
         state,
         current_keys,
+        current_threshold,
         new_next_keys,
         new_next_threshold,
         witness_to_add,
@@ -133,6 +135,7 @@ pub fn rotate(
 fn make_rotation(
     state: IdentifierState,
     current_keys: Vec<BasicPrefix>,
+    current_threshold: u64,
     new_next_keys: Vec<BasicPrefix>,
     new_next_threshold: u64,
     witness_to_add: Vec<BasicPrefix>,
@@ -144,6 +147,7 @@ fn make_rotation(
         .with_sn(state.sn + 1)
         .with_previous_event(&state.last_event_digest.into())
         .with_keys(current_keys)
+        .with_threshold(&SignatureThreshold::Simple(current_threshold))
         .with_next_keys(new_next_keys)
         .with_witness_to_add(&witness_to_add)
         .with_witness_to_remove(&witness_to_remove)
