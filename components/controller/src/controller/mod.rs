@@ -74,7 +74,8 @@ impl Controller {
             .incept(public_keys, None, next_pub_keys, None, witnesses, witness_threshold)
     }
 
-    pub async fn incept_with_thresholds(
+    // NB: must setup witnesses before calling this function!!
+    pub fn incept_with_thresholds(
         &self,
         public_keys: Vec<BasicPrefix>,
         signature_threshold: u64,
@@ -83,7 +84,7 @@ impl Controller {
         witnesses: Vec<LocationScheme>,
         witness_threshold: u64,
     ) -> Result<String, MechanicsError> {
-        self.setup_witnesses(&witnesses).await?;
+        // self.setup_witnesses(&witnesses).await?;
         let current_sig_threshold = SignatureThreshold::Simple(signature_threshold);
         let next_sig_threshold = next_keys_threshold
             .map(|t| SignatureThreshold::Simple(t))
@@ -117,7 +118,7 @@ impl Controller {
         ))
     }
 
-    async fn setup_witnesses(&self, oobis: &[LocationScheme]) -> Result<(), MechanicsError> {
+    pub async fn setup_witnesses(&self, oobis: &[LocationScheme]) -> Result<(), MechanicsError> {
         for lc in oobis {
             self.communication.resolve_loc_schema(lc).await?;
         }
